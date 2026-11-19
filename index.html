@@ -2,7 +2,7 @@
 <link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="game.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@900&text=MerryXAS&display=swap" media="print" onload="this.media='all'">
-<script src="app.js"></script><script>window.PUBP=api('pub');window.PUBP.catch(function(){})</script></head>
+<script src="app.js"></script><script>if(typeof api==='undefined'||typeof CFG==='undefined'){window.CFG={API:'https://script.google.com/macros/s/AKfycbx80zKKqUsDDv-zvfspmSgk5rMYwvBQwVO7LOzRh_9a_W9S3QTjsjwBHRm4IHllR1kp/exec',LOGO:''};window.api=async function(a,d){var j;try{var r=await fetch(CFG.API,{method:'POST',body:JSON.stringify(Object.assign({a:a},d||{}))});j=await r.json()}catch(e){throw new Error('Không kết nối được máy chủ, vui lòng thử lại')}if(!j.ok)throw new Error(j.m);return j.d};window.esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};window.money=function(n){return Number(n||0).toLocaleString('vi-VN')}}window.PUBP=api('pub');window.PUBP.catch(function(){})</script></head>
 <body><div class="lights"></div>
 <main class="wrap">
 <div class="top"><img id="logo" class="logo" alt="9 Sạch" width="40" height="40"><button id="mute" class="mute" type="button" aria-label="Bật hoặc tắt âm thanh" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><g class="w"><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></g><g class="x"><path d="m16 9 5 6M21 9l-5 6"/></g></svg></button></div>
@@ -51,7 +51,7 @@ function apply(d){D=d;ready=true;var c=d.cfg||{},t=clean(c.TieuDe);if(t)$('tt').
 function load(){var p=first&&window.PUBP?window.PUBP:api('pub');first=false;return p.then(function(d){ls('pub',JSON.stringify(d));apply(d);return d})}
 function boot(n){load().catch(function(e){if(D)return;if(n<4)setTimeout(function(){boot(n+1)},2500);else $('er').textContent=(e&&e.message)||'Không tải được dữ liệu, vui lòng tải lại trang'})}
 $('st').onchange=function(){ST=this.value;ls('st',ST);build()};
-snow();mu();$('logo').src=CFG.LOGO;rim();draw();ui();
+snow();mu();if(CFG.LOGO)$('logo').src=CFG.LOGO;else $('logo').style.display='none';rim();draw();ui();
 try{var c0=ls('pub');if(c0)apply(JSON.parse(c0))}catch(e){}
 boot(0);arm();
 $('ph').oninput=function(){this.value=this.value.replace(/[^0-9]/g,'')};
