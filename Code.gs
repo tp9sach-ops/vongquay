@@ -27,11 +27,10 @@ function mgr(d){var u=auth(d);if(!u.mgr)throw new Error('Chỉ quản lý mới 
 var API={
 pub:function(d){var st=stores(),s=d.store||st[0],c=cfg(),im=d.store?{}:imgs();var p=cg('pub_'+ver()+'_'+encodeURIComponent(s).slice(0,150),function(){return rowsR(S.G).filter(function(r){return r.CuaHang===s&&on(r.Bat)&&Number(r.SoLuong)>0&&Number(r.TyLe)>0}).map(function(r){return{id:String(r.ID),ten:r.Ten}})},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,store:s,prizes:p}},
 spin:function(d){
- var ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,''),hd=String(d.hd||'').trim().toUpperCase(),tien=Number(String(d.tien||'').replace(/[^0-9]/g,'')),st=String(d.store||'');
+ var ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,''),hd=String(d.hd||'').trim().toUpperCase(),st=String(d.store||'');
  if(!ten)throw new Error('Vui lòng nhập họ tên');
  if(!/^0[0-9]{9}$/.test(sdt))throw new Error('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)');
  if(!hd)throw new Error('Vui lòng nhập số hóa đơn');
- var min=Number(cfg().MinTien||0);if(!(tien>=min))throw new Error('Hóa đơn phải từ '+min.toLocaleString('vi-VN')+'đ trở lên mới được quay');
  if(stores().indexOf(st)<0)throw new Error('Cửa hàng không hợp lệ');
  return L(function(){
   var K=sh(S.K),n=K.getLastRow();
@@ -41,7 +40,7 @@ spin:function(d){
   var tot=ps.reduce(function(a,r){return a+Number(r.TyLe)},0),x=Math.random()*tot,p=ps[ps.length-1];
   for(var i=0;i<ps.length;i++){x-=Number(ps[i].TyLe);if(x<0){p=ps[i];break}}
   sh(S.G).getRange(p._r,5).setValue(Number(p.SoLuong)-1);
-  K.appendRow([new Date(),st,ten,sdt,hd,tien,p.Ten,'Chưa trao','','']);
+  K.appendRow([new Date(),st,ten,sdt,hd,'',p.Ten,'Chưa trao','','']);
   bumpPub();
   return{id:String(p.ID),ten:p.Ten}
  })
@@ -53,7 +52,7 @@ delPrize:function(d){mgr(d);return L(function(){var f=rowsR(S.G).filter(function
 stores:function(d){mgr(d);return allSt()},
 saveStore:function(d){mgr(d);var t=String(d.ten||'').trim();if(!t)throw new Error('Vui lòng nhập tên cửa hàng');return L(function(){var f=rowsR(S.C).filter(function(r){return r.Ten===t})[0];if(f)sh(S.C).getRange(f._r,2).setValue(d.toggle?!on(f.Bat):!!d.bat);else sh(S.C).appendRow([t,true]);bump();return 1})},
 saveCfg:function(d){mgr(d);if(['TieuDe','MinTien','Logo','Nen'].indexOf(d.k)<0)throw new Error('Khóa không hợp lệ');return L(function(){var f=rowsR(S.H).filter(function(r){return r.Khoa===d.k})[0];if(f)sh(S.H).getRange(f._r,2).setValue(d.v);else sh(S.H).appendRow([d.k,d.v]);bump();return 1})},
-hist:function(d){var u=auth(d),K=sh(S.K),n=K.getLastRow();if(n<2)return[];var a=Math.max(2,n-1499),v=K.getRange(a,1,n-a+1,10).getValues(),out=[];v.forEach(function(r,i){if(u.stores.indexOf(r[1])<0)return;out.push({r:a+i,t:Utilities.formatDate(new Date(r[0]),'Asia/Ho_Chi_Minh','dd/MM/yyyy HH:mm'),ch:r[1],ten:r[2],sdt:String(r[3]),hd:String(r[4]),tien:r[5],qua:r[6],tt:r[7],ng:r[8]})});return out.reverse().slice(0,500)},
+hist:function(d){var u=auth(d),K=sh(S.K),n=K.getLastRow();if(n<2)return[];var a=Math.max(2,n-1499),v=K.getRange(a,1,n-a+1,10).getValues(),out=[];v.forEach(function(r,i){if(u.stores.indexOf(r[1])<0)return;out.push({r:a+i,t:Utilities.formatDate(new Date(r[0]),'Asia/Ho_Chi_Minh','dd/MM/yyyy HH:mm'),ch:r[1],ten:r[2],sdt:String(r[3]),hd:String(r[4]),qua:r[6],tt:r[7],ng:r[8]})});return out.reverse().slice(0,500)},
 confirm:function(d){var u=auth(d);return L(function(){var K=sh(S.K),r=Number(d.r);if(!(r>1&&r<=K.getLastRow()))throw new Error('Không tìm thấy dòng quay');var v=K.getRange(r,1,1,10).getValues()[0];if(String(v[4])!==String(d.hd))throw new Error('Không tìm thấy dòng quay');if(u.stores.indexOf(v[1])<0)throw new Error('Bạn không có quyền với cửa hàng này');if(v[7]==='Đã trao')throw new Error('Quà này đã được trao rồi');K.getRange(r,8,1,3).setValues([['Đã trao',u.ten,new Date()]]);return 1})}
 };
 function doPost(e){var o;try{var d=JSON.parse(e.postData.contents),f=API[d.a];if(!f)throw new Error('Yêu cầu không hợp lệ');o={ok:true,d:f(d)}}catch(x){o={ok:false,m:String(x.message||x)}}return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON)}
