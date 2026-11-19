@@ -4,6 +4,8 @@ function sh(n){var s=SpreadsheetApp.getActive().getSheetByName(n);if(!s&&n===S.Q
 function rowsR(n){var v=sh(n).getDataRange().getValues(),h=v.shift(),out=[];v.forEach(function(r,i){if(r.join('')==='')return;var o={_r:i+2};h.forEach(function(k,j){o[k]=r[j]});out.push(o)});return out}
 function nz(x){return String(x==null?'':x).replace(/[^0-9]/g,'').replace(/^0+/,'')}
 function on(x){return x===true||String(x).toUpperCase()==='TRUE'}
+function nk(x){return String(x==null?'':x).normalize('NFC').replace(/\s+/g,' ').trim().toLowerCase()}
+function canon(n){var k=nk(n),a=stores();for(var i=0;i<a.length;i++)if(nk(a[i])===k)return a[i];return ''}
 function cg(k,f,t){var v=CC.get(k);if(v!==null)return JSON.parse(v);var r=f();try{CC.put(k,JSON.stringify(r),t||120)}catch(e){}return r}
 function ver(){return CC.get('v')||'0'}
 function bumpPub(){CC.put('v',String(Date.now()),21600)}
@@ -26,7 +28,7 @@ function setup(){
 function auth(d){var a=d.au||{},t=String(a.ten||'').trim().toLowerCase(),s=nz(a.sdt);var A=cg('adm',function(){return rowsR(S.A).map(function(r){return{s:nz(r.SDT),t:String(r.Ten).trim().toLowerCase(),n:r.Ten,q:String(r.Quyen).toLowerCase(),c:String(r.CuaHang||'')}})});var u=A.filter(function(x){return x.s===s&&x.t===t})[0];if(!u)throw new Error('Sai số điện thoại hoặc tên');var m=u.q.indexOf('quản')>=0;return{ten:u.n,mgr:m,stores:m?allSt().map(function(x){return x.ten}):u.c.split(',').map(function(x){return x.trim()}).filter(String)}}
 function mgr(d){var u=auth(d);if(!u.mgr)throw new Error('Chỉ quản lý mới được thực hiện thao tác này');return u}
 var API={
-pub:function(d){var st=stores(),c=cfg(),im=imgs(),p=cg('pa_'+ver(),function(){var by={};rowsR(S.G).forEach(function(r){if(!(on(r.Bat)&&Number(r.SoLuong)>0&&Number(r.TyLe)>0))return;(by[r.CuaHang]=by[r.CuaHang]||[]).push({id:String(r.ID),ten:r.Ten})});return by},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,prizes:p,imgs:qimg()}},
+pub:function(d){var st=stores(),c=cfg(),im=imgs(),p=cg('pa_'+ver(),function(){var by={};rowsR(S.G).forEach(function(r){if(!(on(r.Bat)&&Number(r.SoLuong)>0&&Number(r.TyLe)>0))return;var cn=canon(r.CuaHang);if(!cn)return;(by[cn]=by[cn]||[]).push({id:String(r.ID),ten:r.Ten})});return by},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,prizes:p,imgs:qimg()}},
 spin:function(d){
  var ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,''),hd=String(d.hd||'').trim().toUpperCase(),st=String(d.store||'');
  if(!ten)throw new Error('Vui lòng nhập họ tên');
@@ -36,7 +38,7 @@ spin:function(d){
  return L(function(){
   var K=sh(S.K),n=K.getLastRow();
   if(n>1&&K.getRange(2,5,n-1,1).getValues().some(function(r){return String(r[0]).trim().toUpperCase()===hd}))throw new Error('Hóa đơn này đã tham gia quay');
-  var ps=rowsR(S.G).filter(function(r){return r.CuaHang===st&&on(r.Bat)&&Number(r.SoLuong)>0&&Number(r.TyLe)>0});
+  var ps=rowsR(S.G).filter(function(r){return nk(r.CuaHang)===nk(st)&&on(r.Bat)&&Number(r.SoLuong)>0&&Number(r.TyLe)>0});
   if(!ps.length)throw new Error('Cửa hàng đã hết quà tặng, xin lỗi bạn');
   var tot=ps.reduce(function(a,r){return a+Number(r.TyLe)},0),x=Math.random()*tot,p=ps[ps.length-1];
   for(var i=0;i<ps.length;i++){x-=Number(ps[i].TyLe);if(x<0){p=ps[i];break}}
