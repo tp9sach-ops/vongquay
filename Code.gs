@@ -49,7 +49,8 @@ function draw(d,ten,sdt,tt,tok){
  })
 }
 var API={
-pub:function(d){var st=stores(),c=cfg(),im=imgs(),p=cg('pa_'+ver(),function(){var by={},rs=reservedMap();rowsR(S.G).forEach(function(r){var cn=canon(r.CuaHang);if(!cn||!on(r.Bat)||Number(r.TyLe)<=0||availOf(r,rs)<=0)return;(by[cn]=by[cn]||[]).push({id:String(r.ID),ten:r.Ten})});return by},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,prizes:p,imgs:qimg()}},
+/* pub: prizes = quà còn quay được (để báo hết quà / khóa cửa hàng); show = MỌI quà đang bật kể cả hết kho hoặc tỷ lệ 0% (để game vẫn dựng cọp trên đường đua). Quà hết không bao giờ trúng vì draw() chỉ chọn trong quà còn kho. */
+pub:function(d){var st=stores(),c=cfg(),im=imgs(),p=cg('pb_'+ver(),function(){var by={},sw={},rs=reservedMap();rowsR(S.G).forEach(function(r){var cn=canon(r.CuaHang);if(!cn||!on(r.Bat))return;(sw[cn]=sw[cn]||[]).push({id:String(r.ID),ten:r.Ten});if(Number(r.TyLe)<=0||availOf(r,rs)<=0)return;(by[cn]=by[cn]||[]).push({id:String(r.ID),ten:r.Ten})});return{by:by,sw:sw}},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,prizes:p.by,show:p.sw,imgs:qimg()}},
 /* Cách cũ (vòng quay): gửi đủ tên + SĐT + hóa đơn ngay lúc quay */
 spin:function(d){
  var ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,'');
