@@ -70,8 +70,8 @@ claim:function(d){
   if(!fj.id)throw new Error('Đăng nhập Facebook không hợp lệ, vui lòng thử lại');
   fbId=String(fj.id);fbTen=String(fj.name||'');ten=ten||fbTen
  }else{
-  if(!ten)throw new Error('Vui lòng nhập họ tên');
-  if(!/^0[0-9]{9}$/.test(sdt))throw new Error('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)')
+  if(!/^0[0-9]{9}$/.test(sdt))throw new Error('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)');
+  ten=ten||'Khách '+sdt.slice(-4)
  }
  return L(function(){
   var K=sh(S.K),n=K.getLastRow();if(n<2)throw new Error('Không tìm thấy lượt đua');
