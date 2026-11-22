@@ -17,7 +17,7 @@ function allSt(){return cg('st',function(){return rowsR(S.C).map(function(r){ret
 function stores(){return allSt().filter(function(s){return s.bat}).map(function(s){return s.ten})}
 function L(f){var l=LockService.getScriptLock();l.waitLock(25000);try{return f()}finally{l.releaseLock()}}
 function setup(){
- var T={Admin:['SDT','Ten','Quyen','CuaHang'],CuaHang:['Ten','Bat'],GiaiThuong:['ID','CuaHang','Ten','TyLe','SoLuong','Bat'],KhachQuay:['ThoiGian','CuaHang','Ten','SDT','SoHoaDon','SoTien','Qua','TrangThai','NguoiXacNhan','ThoiGianXacNhan','Token'],CauHinh:['Khoa','GiaTri'],AnhQua:['Ten','Anh']};
+ var T={Admin:['SDT','Ten','Quyen','CuaHang'],CuaHang:['Ten','Bat'],GiaiThuong:['ID','CuaHang','Ten','TyLe','SoLuong','Bat'],KhachQuay:['ThoiGian','CuaHang','Ten','SDT','SoHoaDon','SoTien','Qua','TrangThai','NguoiXacNhan','ThoiGianXacNhan','Token','FbUid','FbTen'],CauHinh:['Khoa','GiaTri'],AnhQua:['Ten','Anh']};
  var ss=SpreadsheetApp.getActive();
  Object.keys(T).forEach(function(n){var s=ss.getSheetByName(n)||ss.insertSheet(n);if(s.getLastRow()==0){s.getRange(1,1,1,T[n].length).setValues([T[n]]).setFontWeight('bold').setBackground('#c8102e').setFontColor('#ffffff');s.setFrozenRows(1)}});
  sh('Admin').getRange('A:A').setNumberFormat('@');sh('KhachQuay').getRange('D:E').setNumberFormat('@');
@@ -61,18 +61,30 @@ spin:function(d){
 /* Đua Cọp: chọn cửa hàng + số hóa đơn -> đua -> trúng quà -> khách nhập tên/SĐT (claim) */
 race:function(d){return draw(d,'','','Chờ nhập thông tin',Utilities.getUuid())},
 claim:function(d){
- var ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,''),hd=String(d.hd||'').trim().toUpperCase(),tok=String(d.tok||'');
- if(!ten)throw new Error('Vui lòng nhập họ tên');
- if(!/^0[0-9]{9}$/.test(sdt))throw new Error('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)');
+ var hd=String(d.hd||'').trim().toUpperCase(),tok=String(d.tok||''),ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,''),fbId='',fbTen='';
  if(!tok||!hd)throw new Error('Thiếu thông tin lượt đua');
+ if(d.fbt){
+  /* Xác minh phía máy chủ: hỏi Facebook ai là chủ access token, không tin UID do trình duyệt gửi */
+  var rp;try{rp=UrlFetchApp.fetch('https://graph.facebook.com/v19.0/me?fields=id,name&access_token='+encodeURIComponent(String(d.fbt)),{muteHttpExceptions:true})}catch(e){throw new Error('Không kết nối được Facebook, vui lòng thử lại')}
+  var fj={};try{fj=JSON.parse(rp.getContentText())}catch(e){}
+  if(!fj.id)throw new Error('Đăng nhập Facebook không hợp lệ, vui lòng thử lại');
+  fbId=String(fj.id);fbTen=String(fj.name||'');ten=ten||fbTen
+ }else{
+  if(!ten)throw new Error('Vui lòng nhập họ tên');
+  if(!/^0[0-9]{9}$/.test(sdt))throw new Error('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)')
+ }
  return L(function(){
   var K=sh(S.K),n=K.getLastRow();if(n<2)throw new Error('Không tìm thấy lượt đua');
+  if(K.getRange(1,12).getValue()==='')K.getRange(1,12,1,2).setValues([['FbUid','FbTen']]);
   var v=K.getRange(2,1,n-1,11).getValues(),i=-1;
   for(var j=v.length-1;j>=0;j--)if(String(v[j][4]).trim().toUpperCase()===hd&&String(v[j][10])===tok){i=j;break}
   if(i<0)throw new Error('Không tìm thấy lượt đua của hóa đơn này');
   if(v[i][7]!=='Chờ nhập thông tin')throw new Error('Lượt đua này đã nhập thông tin rồi');
-  K.getRange(i+2,3,1,2).setNumberFormat('@').setValues([[ten,sdt]]);K.getRange(i+2,8).setValue('Chưa trao');
-  bumpPub();return{qua:v[i][6],ch:v[i][1]}
+  /* Cột SDT: có FB thì ghi "FB:<uid>" để màn nhân viên/Admin vẫn thấy một mã định danh để đối chiếu */
+  K.getRange(i+2,3,1,2).setNumberFormat('@').setValues([[ten,fbId?'FB:'+fbId:sdt]]);
+  K.getRange(i+2,12,1,2).setNumberFormat('@').setValues([[fbId,fbTen]]);
+  K.getRange(i+2,8).setValue('Chưa trao');
+  bumpPub();return{qua:v[i][6],ch:v[i][1],fb:fbId}
  })
 },
 /* Thông báo cho admin: số quà đang chờ trao + vài dòng mới nhất */
