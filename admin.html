@@ -34,6 +34,7 @@ body.own #v label.sm{display:none}
 .cs{display:block;width:100%;text-align:left;margin:6px 0;padding:14px;font:inherit;font-size:18px;font-weight:700;border-radius:12px;border:2px solid #f0b400;background:#fffaf0;cursor:pointer}
 </style>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'></script>
+<script src='poster.js?v=1'></script>
 </head>
 <body>
 <div class='lights'></div>
@@ -208,7 +209,8 @@ async function vQ(){
  var gb='';try{gb=localStorage.vq_game||''}catch(e){}gb=gb||'https://tp9sach-ops.github.io/luutru/';
  var gu=gb+(gb.indexOf('?')>=0?'&':'?')+'ch='+encodeURIComponent(s),au=location.href.split('#')[0]+'#ch='+encodeURIComponent(s)+'&k='+encodeURIComponent(k);
  $('v').innerHTML=`<h3>📱 QR – ${esc(s)}</h3><h3>1️⃣ QR cho KHÁCH (vào trang đua cọp của cửa hàng này)</h3>${qrBox('q1',gu,'qr-khach-'+esc(s))}<h3>2️⃣ QR cho NHÂN VIÊN (vào trang admin của cửa hàng này)</h3><div class=warn>🔒 QR này là chìa khóa admin: chỉ dán ở khu vực nhân viên, KHÔNG đặt chỗ khách nhìn thấy.</div>${qrBox('q2',au,'qr-admin-'+esc(s))}${U.mgr?`<button class=sm data-a='rk' data-i='${esc(s)}'>🔑 Đổi mã admin (QR admin cũ hết hiệu lực)</button>`:''}`;
- qrDraw('q1',gu);qrDraw('q2',au)
+ qrDraw('q1',gu);qrDraw('q2',au);
+ if(window.drawPoster)drawPoster(s,gu,((AD&&AD.cfg)||U.cfg||{}).MinTien)
 }
 async function rk(s){if(!confirm('Đổi mã admin của '+s+'? QR admin đã in trước đó sẽ không dùng được nữa.'))return;try{var k=await call('resetKey',{ten:s});if(!KEYS)KEYS={};KEYS[s]=k;vQ()}catch(e){alert(e.message)}}
 
