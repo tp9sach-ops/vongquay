@@ -8,6 +8,7 @@
 <link rel='stylesheet' href='style.css'>
 <style>
 h1{font-size:26px;margin:6px 0 10px}
+body.own #v label.sm{display:none}
 .nt{background:#fff3cd;color:#7a4b00;border:3px solid #f0b400;border-radius:14px;padding:12px 14px;margin:8px 0;font-weight:800;font-size:17px;cursor:pointer;text-align:left;animation:ntp 1.2s ease-in-out infinite}
 @keyframes ntp{50%{box-shadow:0 0 0 7px #f0b40055}}
 .nt small{display:block;font-weight:500;margin-top:4px;font-size:13px}
@@ -55,13 +56,14 @@ h1{font-size:26px;margin:6px 0 10px}
 <button data-t='i' class='m'>🖼️ Ảnh quà</button>
 <button data-t='c' class='m'>🏬 Cửa hàng</button>
 <button data-t='s' class='m'>⚙️ Cài đặt & QR</button>
+<button data-t='q'>📱 QR cửa hàng</button>
 </nav>
 <div id='v' class='card light'></div>
 </div>
 </main>
 <script src='app.js'></script>
 <script>
-var $=i=>document.getElementById(i),AU={sdt:'',ten:''},U=null,H=null,AD=null,ST='',T='h',NM=[],HT=0,FD='',FQ='',FT='p',AL=0,LT=0,PN=-1,PT=0,TT='Quản lý game giáng sinh';
+var $=i=>document.getElementById(i),AU=(function(){var p=new URLSearchParams(location.hash.slice(1)),o={sdt:'',ten:''};if(p.get('ch')&&p.get('k')){o.ch=p.get('ch');o.k=p.get('k')}else if(p.get('mk'))o.mk=p.get('mk');return o})(),KEYS=null,U=null,H=null,AD=null,ST='',T='h',NM=[],HT=0,FD='',FQ='',FT='p',AL=0,LT=0,PN=-1,PT=0,TT='Quản lý game giáng sinh';
 if(typeof CFG!=='undefined'&&CFG.LOGO)$('logo').src=CFG.LOGO;else $('logo').style.display='none';
 
 /* ---------- Gọi máy chủ ---------- */
@@ -90,18 +92,19 @@ async function boot(){
 }
 function start(){
  $('bx').hidden=true;$('ad').hidden=false;
- document.querySelectorAll('.m').forEach(b=>b.hidden=!U.mgr);
- $('wn').hidden=!!U.mgr;
+ document.querySelectorAll('.m').forEach(b=>b.hidden=!U.mgr&&!(U.own&&b.dataset.t=='g'));
+ $('wn').hidden=!!(U.mgr||U.own);
+ if(U.own){document.body.classList.add('own');TT='Admin – '+U.own;document.title=TT;document.querySelector('h1').textContent='🎄 Admin – '+U.own}
  var sv='';try{sv=localStorage.vq_store||''}catch(e){}
- ST=U.stores.indexOf(sv)>=0?sv:'';
+ ST=U.own?U.own:(U.stores.indexOf(sv)>=0?sv:'');
  fillS();
  try{if(!H&&sessionStorage.hc)H=JSON.parse(sessionStorage.hc)}catch(e){}
  tab('h');poll();clearInterval(PT);PT=setInterval(poll,20000)
 }
 
 /* ---------- Chọn cửa hàng (dùng chung cho mọi mục) ---------- */
-function fillS(){$('gs').innerHTML='<option value="">🌐 Tất cả cửa hàng</option>'+U.stores.map(s=>`<option value="${esc(s)}" ${s==ST?'selected':''}>🏬 ${esc(s)}</option>`).join('')}
-function setS(v){ST=v;try{localStorage.vq_store=v}catch(e){}R()}
+function fillS(){$('gs').innerHTML=(U.own?'':'<option value="">🌐 Tất cả cửa hàng</option>')+U.stores.map(s=>`<option value="${esc(s)}" ${s==ST?'selected':''}>🏬 ${esc(s)}</option>`).join('')}
+function setS(v){ST=v;if(!U.own){try{localStorage.vq_store=v}catch(e){}}R()}
 function pickS(n){setS(n);fillS()}
 $('gs').onchange=function(){setS(this.value)};
 
@@ -121,16 +124,16 @@ async function poll(){
  }catch(e){}
 }
 function goPend(){
- FT='p';FQ='';FD='';ST='';$('gs').value='';T='h';H=null;
+ FT='p';FQ='';FD='';ST=U.own||'';$('gs').value=ST;T='h';H=null;
  R();loadH();
  try{window.scrollTo({top:0,behavior:'smooth'})}catch(e){}
 }
 
 /* ---------- Chuyển mục ---------- */
-function tab(t){T=t;R();if(t=='h'){if(Date.now()-HT>30000)loadH()}else if(U&&U.mgr)ensureA()}
+function tab(t){T=t;R();if(t=='h'){if(Date.now()-HT>30000)loadH()}else if(U&&(U.mgr||U.own))ensureA()}
 function R(){
  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==T));
- if(T=='h')vH();else if(!AD)ld();else({g:vG,c:vC,s:vS,i:vI})[T]()
+ if(T=='h')vH();else if(T=='q')vQ();else if(!AD)ld();else({g:vG,c:vC,s:vS,i:vI})[T]()
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 $('v').onclick=e=>{var b=e.target.closest('button[data-a]');if(b)window[b.dataset.a](b.dataset.i)};
@@ -145,7 +148,7 @@ async function loadH(){
   try{sessionStorage.hc=JSON.stringify(H)}catch(e){}
   if(T=='h'){if($('ht'))hr();else vH()}
  }catch(e){if(T=='h'&&!H)er(e)}
- if(U&&U.mgr)ensureA()
+ if(U&&(U.mgr||U.own))ensureA()
 }
 function fT(x){FT=x||'';vH()}
 function vH(){
@@ -193,6 +196,21 @@ async function di(i){var n=NM[i];if(!confirm('Xóa ảnh của '+n+'?'))return;t
 function vC(){$('v').innerHTML=`<table>${AD.stores.map(s=>`<tr><td>${esc(s.ten)}</td><td>${s.bat?'<span class=ok>Đang bật</span>':'Đang ẩn'}</td><td><button class=sm data-a='tg' data-i='${esc(s.ten)}'>${s.bat?'Ẩn':'Bật'}</button></td></tr>`).join('')}</table><label>Thêm cửa hàng</label><input id='ns' placeholder='Tên cửa hàng'><button class=btn data-a='addShop'>THÊM</button>`}
 async function tg(i){var s=AD.stores.find(x=>x.ten==i);s.bat=!s.bat;R();try{await call('saveStore',{ten:i,toggle:1})}catch(e){s.bat=!s.bat;R();alert(e.message)}}
 async function addShop(){var t=$('ns').value.trim();if(!t)return;try{await call('saveStore',{ten:t,bat:true});AD.stores.push({ten:t,bat:true});U.stores.push(t);fillS();R()}catch(e){alert(e.message)}}
+
+/* ---------- Mục QR CỬA HÀNG: 2 mã (khách đua cọp / nhân viên admin) ---------- */
+function qrBox(id,text,name){return `<div id='${id}' style='background:#fff;padding:10px;display:inline-block'></div><br><a id='${id}d' class=sm download='${name}.png'>⬇️ Tải QR</a><p class=hint style='word-break:break-all'>${esc(text)}</p>`}
+function qrDraw(id,text){new QRCode($(id),{text:text,width:230,height:230});setTimeout(()=>{var cv=$(id).querySelector('canvas');if(cv)$(id+'d').href=cv.toDataURL()},400)}
+async function vQ(){
+ var s=U.own||ST;
+ if(!s){$('v').innerHTML='<h3>👆 Chọn cửa hàng để tạo QR</h3>'+U.stores.map(x=>`<button class=cs data-a='pickS' data-i='${esc(x)}'>🏬 ${esc(x)}</button>`).join('');return}
+ var k=U.own?AU.k:(KEYS&&KEYS[s]);
+ if(!k){$('v').innerHTML='<p>⏳ Đang tạo mã...</p>';try{var a=await call('storeLinks');KEYS={};a.forEach(x=>KEYS[x.ten]=x.k);k=KEYS[s]}catch(e){return er(e)}if(T!='q')return}
+ var gb='';try{gb=localStorage.vq_game||''}catch(e){}gb=gb||'https://tp9sach-ops.github.io/luutru/';
+ var gu=gb+(gb.indexOf('?')>=0?'&':'?')+'ch='+encodeURIComponent(s),au=location.href.split('#')[0]+'#ch='+encodeURIComponent(s)+'&k='+encodeURIComponent(k);
+ $('v').innerHTML=`<h3>📱 QR – ${esc(s)}</h3><h3>1️⃣ QR cho KHÁCH (vào trang đua cọp của cửa hàng này)</h3>${qrBox('q1',gu,'qr-khach-'+esc(s))}<h3>2️⃣ QR cho NHÂN VIÊN (vào trang admin của cửa hàng này)</h3><div class=warn>🔒 QR này là chìa khóa admin: chỉ dán ở khu vực nhân viên, KHÔNG đặt chỗ khách nhìn thấy.</div>${qrBox('q2',au,'qr-admin-'+esc(s))}${U.mgr?`<button class=sm data-a='rk' data-i='${esc(s)}'>🔑 Đổi mã admin (QR admin cũ hết hiệu lực)</button>`:''}`;
+ qrDraw('q1',gu);qrDraw('q2',au)
+}
+async function rk(s){if(!confirm('Đổi mã admin của '+s+'? QR admin đã in trước đó sẽ không dùng được nữa.'))return;try{var k=await call('resetKey',{ten:s});if(!KEYS)KEYS={};KEYS[s]=k;vQ()}catch(e){alert(e.message)}}
 
 /* ---------- Mục CÀI ĐẶT & QR ---------- */
 function vS(){var c=AD.cfg,u='https://www.baocaonoibo.io.vn/vongquay';$('v').innerHTML=`<label>Tiêu đề trang</label><input id='cT' value='${esc(c.TieuDe)}'><label>Mức hóa đơn áp dụng (chỉ hiển thị trên trang khách, đ)</label><input id='cM' type=number value='${esc(c.MinTien)}'><button class=btn data-a='sc'>LƯU</button><label>Logo (ảnh vuông)</label><input type=file accept='image/*' data-k='Logo' data-w='300'><label>Ảnh nền (không bắt buộc)</label><input type=file accept='image/*' data-k='Nen' data-w='480'><h3>Mã QR</h3><div id='qr' style='background:#fff;padding:10px;display:inline-block'></div><br><a id='dl' class=sm download='qr-vongquay.png'>Tải QR</a><p>${esc(u)}</p>`;new QRCode($('qr'),{text:u,width:240,height:240});setTimeout(()=>{var cv=$('qr').querySelector('canvas');if(cv)$('dl').href=cv.toDataURL()},400)}
