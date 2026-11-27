@@ -77,6 +77,9 @@ claim:function(d){
   var fj={};try{fj=JSON.parse(rp.getContentText())}catch(e){}
   if(!fj.id)throw new Error('Đăng nhập Facebook không hợp lệ, vui lòng thử lại');
   fbId=String(fj.id);fbTen=String(fj.name||'');ten=ten||fbTen
+ }else if(d.share&&!sdt){
+  /* Khách bấm chia sẻ Facebook: hợp lệ để trao quà, không cần tên/SĐT */
+  ten=ten||'Khách chia sẻ FB';sdt='Chia sẻ FB'
  }else{
   if(!/^0[0-9]{9}$/.test(sdt))throw new Error('Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)');
   ten=ten||'Khách '+sdt.slice(-4)
@@ -87,7 +90,8 @@ claim:function(d){
   var v=K.getRange(2,1,n-1,11).getValues(),i=-1;
   for(var j=v.length-1;j>=0;j--)if(String(v[j][4]).trim().toUpperCase()===hd&&String(v[j][10])===tok){i=j;break}
   if(i<0)throw new Error('Không tìm thấy lượt đua của hóa đơn này');
-  if(v[i][7]!=='Chờ nhập thông tin')throw new Error('Lượt đua này đã nhập thông tin rồi');
+  var up=v[i][7]==='Chưa trao'&&String(v[i][3])==='Chia sẻ FB'&&!d.share;/* đã chia sẻ trước, nay bổ sung tên + SĐT */
+  if(v[i][7]!=='Chờ nhập thông tin'&&!up)throw new Error('Lượt đua này đã nhập thông tin rồi');
   /* Cột SDT: có FB thì ghi "FB:<uid>" để màn nhân viên/Admin vẫn thấy một mã định danh để đối chiếu */
   K.getRange(i+2,3,1,2).setNumberFormat('@').setValues([[ten,fbId?'FB:'+fbId:sdt]]);
   K.getRange(i+2,12,1,2).setNumberFormat('@').setValues([[fbId,fbTen]]);
