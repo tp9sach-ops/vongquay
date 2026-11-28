@@ -15,9 +15,18 @@ function imgs(){return cg('img',function(){var o={};rowsR(S.H).forEach(function(
 function qimg(){return cg('qimg',function(){var o={};rowsR(S.Q).forEach(function(r){if(r.Ten&&r.Anh)o[r.Ten]=r.Anh});return o},300)}
 function allSt(){return cg('st',function(){return rowsR(S.C).map(function(r){return{ten:r.Ten,bat:on(r.Bat)}})})}
 function stores(){return allSt().filter(function(s){return s.bat}).map(function(s){return s.ten})}
+/* ===== QUÀ VIP: cột thêm ở sheet GiaiThuong: Vip, SlNgay (số quà ra tối đa/ngày), NgayBD, NgayKT (yyyy-mm-dd), SlBanDau ===== */
+var GH=['ID','CuaHang','Ten','TyLe','SoLuong','Bat','Vip','SlNgay','NgayBD','NgayKT','SlBanDau'],TZ='Asia/Ho_Chi_Minh';
+function today(){return Utilities.formatDate(new Date(),TZ,'yyyy-MM-dd')}
+function dstr(x){if(x===''||x==null)return '';if(x instanceof Date)return Utilities.formatDate(x,TZ,'yyyy-MM-dd');var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(x).trim());return m?m[1]+'-'+m[2]+'-'+m[3]:''}
+function ensureG(){var g=sh(S.G);if(g.getMaxColumns()<GH.length)g.insertColumnsAfter(g.getMaxColumns(),GH.length-g.getMaxColumns());var c=g.getRange(1,1,1,GH.length),v=c.getValues()[0],ch=false;for(var i=6;i<GH.length;i++)if(v[i]!==GH[i]){v[i]=GH[i];ch=true}if(ch){c.setValues([v]);g.getRange(1,7,1,GH.length-6).setFontWeight('bold').setBackground('#c8102e').setFontColor('#ffffff');g.getRange(2,9,Math.max(1,g.getMaxRows()-1),2).setNumberFormat('@')}}
+/* Số lần mỗi quà đã trúng TRONG HÔM NAY (mọi trạng thái, kể cả chưa trao) theo cửa hàng|quà */
+function todayWins(){var K=sh(S.K),n=K.getLastRow(),m={};if(n<2)return m;var a=Math.max(2,n-2999),t=today();K.getRange(a,1,n-a+1,7).getValues().forEach(function(r){if(dstr(r[0])===t){var k=nk(r[1])+'|'+nk(r[6]);m[k]=(m[k]||0)+1}});return m}
+/* Quà VIP còn được quay không: trong thời gian chạy và chưa ra đủ số lượng của hôm nay (đủ số => tỷ lệ tự động = 0% đến hết ngày) */
+function vipOpen(r,tm,t){if(!on(r.Vip))return true;var b=dstr(r.NgayBD),e=dstr(r.NgayKT);if(b&&t<b)return false;if(e&&t>e)return false;var c=Number(r.SlNgay)||0;return !(c>0&&(tm[nk(r.CuaHang)+'|'+nk(r.Ten)]||0)>=c)}
 function L(f){var l=LockService.getScriptLock();l.waitLock(25000);try{return f()}finally{l.releaseLock()}}
 function setup(){
- var T={Admin:['SDT','Ten','Quyen','CuaHang'],CuaHang:['Ten','Bat'],GiaiThuong:['ID','CuaHang','Ten','TyLe','SoLuong','Bat'],KhachQuay:['ThoiGian','CuaHang','Ten','SDT','SoHoaDon','SoTien','Qua','TrangThai','NguoiXacNhan','ThoiGianXacNhan','Token','FbUid','FbTen'],CauHinh:['Khoa','GiaTri'],AnhQua:['Ten','Anh']};
+ var T={Admin:['SDT','Ten','Quyen','CuaHang'],CuaHang:['Ten','Bat'],GiaiThuong:['ID','CuaHang','Ten','TyLe','SoLuong','Bat','Vip','SlNgay','NgayBD','NgayKT','SlBanDau'],KhachQuay:['ThoiGian','CuaHang','Ten','SDT','SoHoaDon','SoTien','Qua','TrangThai','NguoiXacNhan','ThoiGianXacNhan','Token','FbUid','FbTen'],CauHinh:['Khoa','GiaTri'],AnhQua:['Ten','Anh']};
  var ss=SpreadsheetApp.getActive();
  Object.keys(T).forEach(function(n){var s=ss.getSheetByName(n)||ss.insertSheet(n);if(s.getLastRow()==0){s.getRange(1,1,1,T[n].length).setValues([T[n]]).setFontWeight('bold').setBackground('#c8102e').setFontColor('#ffffff');s.setFrozenRows(1)}});
  sh('Admin').getRange('A:A').setNumberFormat('@');sh('KhachQuay').getRange('D:E').setNumberFormat('@');
@@ -46,7 +55,7 @@ function draw(d,ten,sdt,tt,tok){
   var K=sh(S.K),n=K.getLastRow();
   if(K.getRange(1,11).getValue()==='')K.getRange(1,11).setValue('Token');
   if(n>1&&K.getRange(2,5,n-1,1).getValues().some(function(r){return String(r[0]).trim().toUpperCase()===hd}))throw new Error('Hóa đơn này đã tham gia đua, không thể đua lại');
-  var rs=reservedMap(),ps=rowsR(S.G).filter(function(r){return nk(r.CuaHang)===nk(st)&&on(r.Bat)&&Number(r.TyLe)>0&&availOf(r,rs)>0});
+  var rs=reservedMap(),G=rowsR(S.G),t=today(),tm=G.some(function(r){return on(r.Vip)})?todayWins():{},ps=G.filter(function(r){return nk(r.CuaHang)===nk(st)&&on(r.Bat)&&Number(r.TyLe)>0&&availOf(r,rs)>0&&vipOpen(r,tm,t)});
   if(!ps.length)throw new Error('Cửa hàng đã hết quà tặng, xin lỗi bạn');
   var tot=ps.reduce(function(a,r){return a+Number(r.TyLe)},0),x=Math.random()*tot,p=ps[ps.length-1];
   for(var i=0;i<ps.length;i++){x-=Number(ps[i].TyLe);if(x<0){p=ps[i];break}}
@@ -58,7 +67,7 @@ function draw(d,ten,sdt,tt,tok){
 }
 var API={
 /* pub: prizes = quà còn quay được (để báo hết quà / khóa cửa hàng); show = MỌI quà đang bật kể cả hết kho hoặc tỷ lệ 0% (để game vẫn dựng cọp trên đường đua). Quà hết không bao giờ trúng vì draw() chỉ chọn trong quà còn kho. */
-pub:function(d){var st=stores(),c=cfg(),im=imgs(),p=cg('pb_'+ver(),function(){var by={},sw={},rs=reservedMap();rowsR(S.G).forEach(function(r){var cn=canon(r.CuaHang);if(!cn||!on(r.Bat))return;(sw[cn]=sw[cn]||[]).push({id:String(r.ID),ten:r.Ten});if(Number(r.TyLe)<=0||availOf(r,rs)<=0)return;(by[cn]=by[cn]||[]).push({id:String(r.ID),ten:r.Ten})});return{by:by,sw:sw}},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,prizes:p.by,show:p.sw,imgs:qimg()}},
+pub:function(d){var st=stores(),c=cfg(),im=imgs(),p=cg('pb_'+ver(),function(){var by={},sw={},rs=reservedMap(),G=rowsR(S.G),t=today(),tm=G.some(function(r){return on(r.Vip)})?todayWins():{};G.forEach(function(r){var cn=canon(r.CuaHang);if(!cn||!on(r.Bat))return;(sw[cn]=sw[cn]||[]).push({id:String(r.ID),ten:r.Ten});if(Number(r.TyLe)<=0||availOf(r,rs)<=0||!vipOpen(r,tm,t))return;(by[cn]=by[cn]||[]).push({id:String(r.ID),ten:r.Ten})});return{by:by,sw:sw}},20);return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0),Logo:im.Logo,Nen:im.Nen},stores:st,prizes:p.by,show:p.sw,imgs:qimg()}},
 /* Cách cũ (vòng quay): gửi đủ tên + SĐT + hóa đơn ngay lúc quay */
 spin:function(d){
  var ten=String(d.ten||'').trim(),sdt=String(d.sdt||'').replace(/[^0-9]/g,'');
@@ -104,8 +113,20 @@ pending:function(d){var u=auth(d),K=sh(S.K),n=K.getLastRow();if(n<2)return{n:0,l
 login:function(d){var u=auth(d),c=cfg();return{ten:u.ten,mgr:u.mgr,own:u.own||'',stores:u.stores,cfg:c}},
 storeLinks:function(d){mgr(d);return allSt().map(function(s){return{ten:s.ten,bat:s.bat,k:storeKey(s.ten)}})},
 resetKey:function(d){mgr(d);return L(function(){storeKey(d.ten);var f=storeRow(d.ten),k=newKey();sh(S.C).getRange(f._r,3).setValue(k);return k})},
-adminAll:function(d){var u=auth(d);if(!u.mgr&&!u.own)throw new Error('Không có quyền');var ok=function(s){return u.mgr||nk(u.own)===nk(s)},c=cfg();return{cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0)},stores:allSt().filter(function(s){return ok(s.ten)}),prizes:rowsR(S.G).filter(function(r){return ok(r.CuaHang)}).map(function(r){return{id:String(r.ID),store:r.CuaHang,ten:r.Ten,tyle:Number(r.TyLe),sl:Number(r.SoLuong),bat:on(r.Bat)}}),imgs:qimg()}},
-savePrize:function(d){sOwn(d,d.store);var ten=String(d.ten||'').trim();if(!ten)throw new Error('Vui lòng nhập tên quà');return L(function(){var f=d.id?rowsR(S.G).filter(function(r){return String(r.ID)===String(d.id)&&r.CuaHang===d.store})[0]:null,id=f?String(f.ID):Utilities.getUuid().slice(0,8),v=[id,d.store,ten,Number(d.tyle)||0,Number(d.sl)||0,!!d.bat];if(f)sh(S.G).getRange(f._r,1,1,6).setValues([v]);else sh(S.G).appendRow(v);bumpPub();return{id:id,store:d.store,ten:ten,tyle:v[3],sl:v[4],bat:v[5]}})},
+adminAll:function(d){var u=auth(d);if(!u.mgr&&!u.own)throw new Error('Không có quyền');ensureG();var ok=function(s){return u.mgr||nk(u.own)===nk(s)},c=cfg(),t=today(),K=sh(S.K),n=K.getLastRow(),w={},g={},td={},sn={};
+ /* thống kê lượt đua: trúng (mọi trạng thái), đã trao, trúng hôm nay theo quà; số lượt + ngày đầu tiên theo cửa hàng */
+ if(n>1)K.getRange(2,1,n-1,8).getValues().forEach(function(r){var dd=dstr(r[0]),s=nk(r[1]),k=s+'|'+nk(r[6]);w[k]=(w[k]||0)+1;if(r[7]==='Đã trao')g[k]=(g[k]||0)+1;if(dd===t)td[k]=(td[k]||0)+1;var o=sn[s]||(sn[s]={n:0,d0:'',nt:0});o.n++;if(dd&&(!o.d0||dd<o.d0))o.d0=dd;if(dd===t)o.nt++});
+ return{v:2,today:t,cfg:{TieuDe:c.TieuDe,MinTien:Number(c.MinTien||0)},stores:allSt().filter(function(s){return ok(s.ten)}).map(function(s){var o=sn[nk(s.ten)]||{n:0,d0:'',nt:0};return{ten:s.ten,bat:s.bat,n:o.n,d0:o.d0,nt:o.nt}}),prizes:rowsR(S.G).filter(function(r){return ok(r.CuaHang)}).map(function(r){var k=nk(r.CuaHang)+'|'+nk(r.Ten);return{id:String(r.ID),store:r.CuaHang,ten:r.Ten,tyle:Number(r.TyLe),sl:Number(r.SoLuong),bat:on(r.Bat),vip:on(r.Vip),sln:Number(r.SlNgay)||0,bd:dstr(r.NgayBD),kt:dstr(r.NgayKT),sb:Number(r.SlBanDau)||0,won:w[k]||0,given:g[k]||0,td:td[k]||0}}),imgs:qimg()}},
+savePrize:function(d){sOwn(d,d.store);var ten=String(d.ten||'').trim();if(!ten)throw new Error('Vui lòng nhập tên quà');return L(function(){ensureG();var f=d.id?rowsR(S.G).filter(function(r){return String(r.ID)===String(d.id)&&r.CuaHang===d.store})[0]:null,id=f?String(f.ID):Utilities.getUuid().slice(0,8),has=function(k){return d[k]!==undefined&&d[k]!==null},
+ vip=has('vip')?!!d.vip:(f?on(f.Vip):false),
+ sln=has('slNgay')?Math.max(0,Math.floor(Number(d.slNgay)||0)):(f?Number(f.SlNgay)||0:0),
+ bd=has('ngayBD')?dstr(d.ngayBD):(f?dstr(f.NgayBD):''),
+ kt=has('ngayKT')?dstr(d.ngayKT):(f?dstr(f.NgayKT):''),
+ sb=has('slBanDau')?Math.max(0,Number(d.slBanDau)||0):(f?Number(f.SlBanDau)||0:Math.max(0,Number(d.sl)||0));
+ if(bd&&kt&&kt<bd)throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
+ var v=[id,d.store,ten,Number(d.tyle)||0,Number(d.sl)||0,!!d.bat,vip,sln,bd,kt,sb];
+ if(f)sh(S.G).getRange(f._r,1,1,GH.length).setValues([v]);else sh(S.G).appendRow(v);
+ bumpPub();return{id:id,store:d.store,ten:ten,tyle:v[3],sl:v[4],bat:v[5],vip:vip,sln:sln,bd:bd,kt:kt,sb:sb}})},
 delPrize:function(d){sOwn(d,d.store);return L(function(){var f=rowsR(S.G).filter(function(r){return String(r.ID)===String(d.id)&&r.CuaHang===d.store})[0];if(f)sh(S.G).deleteRow(f._r);bumpPub();return 1})},
 saveImg:function(d){mgr(d);var t=String(d.ten||'').trim(),v=String(d.v||'');if(!t)throw new Error('Thiếu tên quà');if(v.length>45000)throw new Error('Ảnh quá lớn');return L(function(){var f=rowsR(S.Q).filter(function(r){return r.Ten===t})[0];if(f)sh(S.Q).getRange(f._r,2).setValue(v);else sh(S.Q).appendRow([t,v]);CC.remove('qimg');return 1})},
 saveStore:function(d){mgr(d);var t=String(d.ten||'').trim();if(!t)throw new Error('Vui lòng nhập tên cửa hàng');return L(function(){var f=rowsR(S.C).filter(function(r){return r.Ten===t})[0];if(f)sh(S.C).getRange(f._r,2).setValue(d.toggle?!on(f.Bat):!!d.bat);else sh(S.C).appendRow([t,true]);bump();return 1})},
